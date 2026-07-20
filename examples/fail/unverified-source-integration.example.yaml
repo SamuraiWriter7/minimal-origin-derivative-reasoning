@@ -1,0 +1,73 @@
+schema_version: "0.4.0"
+
+rehydration_id: "krr-20260720-fail-001"
+
+request:
+  request_id: "rehydration-request-fail-001"
+  trigger: "missing-origin"
+  requested_knowledge: >-
+    Retrieve missing implementation details from an available external source.
+  target_context_id: "context-unverified-source"
+  parent_reasoning_trace_id: "drt-20260720-001"
+  minimum_required_confidence: 0.80
+  requested_at: "2026-07-20T10:40:00+09:00"
+  requested_by: "wind-reasoning-agent"
+
+origin_bindings:
+  - "knowledge-origin-001"
+
+source_candidates:
+  - source_id: "source-unverified-external"
+    locator: "external://unknown/implementation-details"
+    source_type: "external"
+    trust_level: "unverified"
+    retrieved_at: "2026-07-20T10:41:00+09:00"
+    content_hash: "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+    freshness_score: 0.90
+    relevance_score: 0.92
+    selected: true
+    summary: >-
+      An externally retrieved source with no verified provenance.
+
+integrity_checks:
+  hash_verified: false
+  provenance_verified: false
+  schema_valid: true
+  conflict_status: "none"
+  checked_at: "2026-07-20T10:42:00+09:00"
+  checked_by: "wind-audit-agent"
+  notes: >-
+    The source was not verified, but the invalid record attempts integration.
+
+integration:
+  status: "integrated"
+  integration_mode: "temporary"
+  selected_source_ids:
+    - "source-unverified-external"
+  integrated_knowledge_id: "rehydrated-unverified-details"
+  integrated_at: "2026-07-20T10:43:00+09:00"
+  expires_at: "2026-07-20T12:43:00+09:00"
+  confidence: 0.89
+  rationale: >-
+    The source appears relevant, but its integrity and provenance are unverified.
+  isolation_scope: "task"
+  approval_ids: []
+  rollback_locator: "rollback://rehydration/krr-20260720-fail-001"
+  conflict_resolution_ids: []
+
+audit_policy:
+  require_verified_hash: true
+  require_provenance_verification: true
+  prohibit_disputed_sources: true
+  require_expiry_for_temporary: true
+  prohibit_permanent_integration_without_retention_decision: true
+  minimum_source_relevance: 0.75
+  minimum_source_freshness: 0.60
+
+trace:
+  created_at: "2026-07-20T10:44:00+09:00"
+  created_by: "wind-rehydration-agent"
+  parent_record_ids:
+    - "drt-20260720-001"
+  notes: >-
+    Expected to fail because an unverified source is integrated.
