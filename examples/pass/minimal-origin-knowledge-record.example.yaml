@@ -1,0 +1,139 @@
+schema_version: "0.1.0"
+
+record_id: "mokr-20260720-001"
+
+subject:
+  id: "wind-intelligence"
+  label: "Wind Intelligence Design"
+  description: >-
+    A minimal knowledge architecture that retains stable origins,
+    externalizes recoverable detail, discards redundant residue,
+    and generates traceable derivative reasoning.
+
+origin_kernel:
+  principles:
+    - id: "principle-minimal-retention"
+      statement: >-
+        Retain only the knowledge required to preserve stable meaning,
+        constraints, and reasoning continuity.
+      authority: "normative"
+
+    - id: "principle-derivative-reasoning"
+      statement: >-
+        Generate contextual conclusions from retained origins instead
+        of attempting to memorize every possible conclusion.
+      authority: "normative"
+
+    - id: "principle-traceable-forgetting"
+      statement: >-
+        Record why knowledge was archived or discarded so that forgetting
+        remains inspectable and auditable.
+      authority: "normative"
+
+  definitions:
+    origin: >-
+      A minimal knowledge unit required to preserve meaning,
+      causality, constraints, or identity.
+    derivative: >-
+      A contextual conclusion generated from one or more origins
+      and the currently declared context.
+    residue: >-
+      Knowledge that is redundant, obsolete, reproducible,
+      untraceable, or unnecessary for stable reasoning.
+
+  constraints:
+    - "Every derivative conclusion must reference at least one retained origin."
+    - "Insufficient origin knowledge must trigger retrieval, deferral, inquiry, or abstention."
+    - "Discarded knowledge must not remain the sole basis of a decision."
+    - "Retrieved knowledge must preserve its source locator."
+    - "A hypothesis must not be stored as confirmed origin knowledge without verification."
+
+knowledge_partition:
+  retained:
+    - knowledge_id: "knowledge-origin-001"
+      classification: "origin"
+      summary: >-
+        Intelligence should retain a minimal stable kernel and derive
+        context-specific conclusions when needed.
+      reason: >-
+        This principle defines the central behavior of the protocol and
+        is required for all later derivation decisions.
+      content_hash: "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+      source_locator: "origin://wind-intelligence/minimal-retention"
+
+    - knowledge_id: "knowledge-origin-002"
+      classification: "origin"
+      summary: >-
+        Every derivative conclusion must remain traceable to its retained
+        origins and declared context.
+      reason: >-
+        Traceability is required to distinguish valid derivation from
+        unsupported generation.
+      content_hash: "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+      source_locator: "origin://wind-intelligence/origin-binding"
+
+  archived:
+    - knowledge_id: "knowledge-archive-001"
+      classification: "recallable"
+      summary: >-
+        Detailed implementation examples for applying minimal retention
+        to specialized agent workflows.
+      locator: "archive://wind-intelligence/implementation-examples"
+      reason: >-
+        The examples are useful in specific contexts but are not required
+        in the permanently retained origin kernel.
+      content_hash: "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+
+    - knowledge_id: "knowledge-archive-002"
+      classification: "recallable"
+      summary: >-
+        Historical comparison data for large-model and minimal-kernel
+        reasoning architectures.
+      locator: "archive://wind-intelligence/comparison-data"
+      reason: >-
+        The data may support audits and evaluations but is too detailed
+        to remain in the active reasoning kernel.
+      content_hash: "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+
+  discarded:
+    - knowledge_hash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      classification: "residue"
+      reason: >-
+        Duplicate intermediate text that can be regenerated from retained
+        origins without losing meaning or provenance.
+      reversible: true
+      recovery_method: "recompute"
+      discarded_at: "2026-07-20T09:00:00+09:00"
+
+    - knowledge_hash: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      classification: "residue"
+      reason: >-
+        An obsolete cache entry superseded by the archived comparison dataset.
+      reversible: true
+      recovery_method: "archive"
+      replacement_locator: "archive://wind-intelligence/comparison-data"
+      discarded_at: "2026-07-20T09:01:00+09:00"
+
+derivation_policy:
+  require_origin_binding: true
+  require_context_declaration: true
+  permit_external_retrieval: true
+  uncertainty_threshold: 0.35
+  allowed_insufficient_knowledge_actions:
+    - "retrieve"
+    - "defer"
+    - "ask"
+    - "abstain"
+
+audit_policy:
+  verify_origin_integrity: true
+  verify_derivation_trace: true
+  record_retrieval_sources: true
+  prohibit_unsupported_certainty: true
+
+trace:
+  created_at: "2026-07-20T09:00:00+09:00"
+  created_by: "wind-intelligence-agent"
+  parent_record_ids: []
+  notes: >-
+    Initial Minimal Origin Knowledge Record for protocol version 0.1.
