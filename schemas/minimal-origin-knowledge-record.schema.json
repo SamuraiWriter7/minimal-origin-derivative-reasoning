@@ -1,0 +1,378 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/minimal-origin-knowledge-record.schema.json",
+  "title": "Minimal Origin Knowledge Record",
+  "description": "Defines the minimal origin knowledge retained by a reasoning system, together with archived knowledge, disposable residue, derivation policy, audit policy, and trace metadata.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_id",
+    "subject",
+    "origin_kernel",
+    "knowledge_partition",
+    "derivation_policy",
+    "audit_policy",
+    "trace"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "0.1.0",
+      "description": "Version of this record schema."
+    },
+    "record_id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        }
+      }
+    },
+    "origin_kernel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "principles",
+        "definitions",
+        "constraints"
+      ],
+      "properties": {
+        "principles": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/principle"
+          }
+        },
+        "definitions": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "pattern": "^[a-z][a-z0-9_-]*$"
+          },
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        },
+        "constraints": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        }
+      }
+    },
+    "knowledge_partition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "retained",
+        "archived",
+        "discarded"
+      ],
+      "properties": {
+        "retained": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/retainedKnowledge"
+          }
+        },
+        "archived": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/archivedKnowledge"
+          }
+        },
+        "discarded": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/discardedKnowledge"
+          }
+        }
+      }
+    },
+    "derivation_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "require_origin_binding",
+        "require_context_declaration",
+        "permit_external_retrieval",
+        "uncertainty_threshold"
+      ],
+      "properties": {
+        "require_origin_binding": {
+          "type": "boolean",
+          "description": "Whether every derivative conclusion must be bound to at least one retained origin."
+        },
+        "require_context_declaration": {
+          "type": "boolean",
+          "description": "Whether the active reasoning context must be declared."
+        },
+        "permit_external_retrieval": {
+          "type": "boolean",
+          "description": "Whether archived or external knowledge may be retrieved."
+        },
+        "uncertainty_threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Below this confidence level, the system must retrieve more knowledge, defer, ask, or abstain."
+        },
+        "allowed_insufficient_knowledge_actions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "retrieve",
+              "defer",
+              "ask",
+              "abstain"
+            ]
+          }
+        }
+      }
+    },
+    "audit_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "verify_origin_integrity",
+        "verify_derivation_trace",
+        "record_retrieval_sources",
+        "prohibit_unsupported_certainty"
+      ],
+      "properties": {
+        "verify_origin_integrity": {
+          "type": "boolean"
+        },
+        "verify_derivation_trace": {
+          "type": "boolean"
+        },
+        "record_retrieval_sources": {
+          "type": "boolean"
+        },
+        "prohibit_unsupported_certainty": {
+          "type": "boolean"
+        }
+      }
+    },
+    "trace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "created_at",
+        "created_by",
+        "parent_record_ids"
+      ],
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "created_by": {
+          "$ref": "#/$defs/identifier"
+        },
+        "parent_record_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        }
+      }
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 128,
+      "pattern": "^[a-z0-9][a-z0-9._:-]*$"
+    },
+    "principle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "statement",
+        "authority"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "statement": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "authority": {
+          "type": "string",
+          "enum": [
+            "normative",
+            "informative"
+          ]
+        }
+      }
+    },
+    "retainedKnowledge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "knowledge_id",
+        "classification",
+        "summary",
+        "reason"
+      ],
+      "properties": {
+        "knowledge_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "classification": {
+          "type": "string",
+          "const": "origin"
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "content_hash": {
+          "$ref": "#/$defs/sha256Hash"
+        },
+        "source_locator": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        }
+      }
+    },
+    "archivedKnowledge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "knowledge_id",
+        "classification",
+        "summary",
+        "locator",
+        "reason"
+      ],
+      "properties": {
+        "knowledge_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "classification": {
+          "type": "string",
+          "const": "recallable"
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "locator": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "content_hash": {
+          "$ref": "#/$defs/sha256Hash"
+        }
+      }
+    },
+    "discardedKnowledge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "knowledge_hash",
+        "classification",
+        "reason",
+        "reversible",
+        "recovery_method"
+      ],
+      "properties": {
+        "knowledge_hash": {
+          "$ref": "#/$defs/sha256Hash"
+        },
+        "classification": {
+          "type": "string",
+          "const": "residue"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "reversible": {
+          "type": "boolean"
+        },
+        "recovery_method": {
+          "type": "string",
+          "enum": [
+            "archive",
+            "recompute",
+            "source-retrieval",
+            "none"
+          ]
+        },
+        "replacement_locator": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "discarded_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "sha256Hash": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    }
+  }
+}
