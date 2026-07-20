@@ -1,0 +1,488 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/derivative-reasoning-trace.schema.json",
+  "title": "Derivative Reasoning Trace",
+  "description": "Records an auditable, acyclic derivation path from retained origins and retrieved context to final conclusions.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "trace_id",
+    "reasoning_subject",
+    "declared_context",
+    "origin_bindings",
+    "retrieval_inputs",
+    "claims",
+    "derivation_steps",
+    "final_output",
+    "audit_policy",
+    "trace"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "0.3.0"
+    },
+    "trace_id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "reasoning_subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "query",
+        "requested_at"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "query": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "requested_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "declared_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "context_id",
+        "summary",
+        "assumptions"
+      ],
+      "properties": {
+        "context_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/assumption"
+          }
+        }
+      }
+    },
+    "origin_bindings": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/originBinding"
+      }
+    },
+    "retrieval_inputs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/retrievalInput"
+      }
+    },
+    "claims": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/claim"
+      }
+    },
+    "derivation_steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/derivationStep"
+      }
+    },
+    "final_output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "conclusion_claim_ids",
+        "response_summary",
+        "overall_confidence",
+        "insufficient_knowledge_action"
+      ],
+      "properties": {
+        "conclusion_claim_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        },
+        "response_summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8000
+        },
+        "overall_confidence": {
+          "$ref": "#/$defs/score"
+        },
+        "insufficient_knowledge_action": {
+          "type": "string",
+          "enum": [
+            "none",
+            "retrieve",
+            "defer",
+            "ask",
+            "abstain"
+          ]
+        }
+      }
+    },
+    "audit_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "require_origin_reachability",
+        "require_acyclic_trace",
+        "prohibit_orphan_claims",
+        "require_declared_assumptions",
+        "minimum_final_confidence"
+      ],
+      "properties": {
+        "require_origin_reachability": {
+          "type": "boolean"
+        },
+        "require_acyclic_trace": {
+          "type": "boolean"
+        },
+        "prohibit_orphan_claims": {
+          "type": "boolean"
+        },
+        "require_declared_assumptions": {
+          "type": "boolean"
+        },
+        "minimum_final_confidence": {
+          "$ref": "#/$defs/score"
+        }
+      }
+    },
+    "trace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "created_at",
+        "created_by",
+        "parent_record_ids"
+      ],
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "created_by": {
+          "$ref": "#/$defs/identifier"
+        },
+        "parent_record_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        }
+      }
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 128,
+      "pattern": "^[a-z0-9][a-z0-9._:-]*$"
+    },
+    "score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "sha256Hash": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "assumption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assumption_id",
+        "statement",
+        "confidence",
+        "status"
+      ],
+      "properties": {
+        "assumption_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "statement": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "confidence": {
+          "$ref": "#/$defs/score"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "declared",
+            "verified",
+            "rejected"
+          ]
+        }
+      }
+    },
+    "originBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "binding_id",
+        "origin_record_id",
+        "knowledge_id",
+        "role",
+        "summary"
+      ],
+      "properties": {
+        "binding_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "origin_record_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "knowledge_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "principle",
+            "definition",
+            "constraint",
+            "fact",
+            "policy"
+          ]
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "content_hash": {
+          "$ref": "#/$defs/sha256Hash"
+        }
+      }
+    },
+    "retrievalInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "retrieval_id",
+        "locator",
+        "source_type",
+        "trust_level",
+        "retrieved_at",
+        "summary"
+      ],
+      "properties": {
+        "retrieval_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "locator": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "source_type": {
+          "type": "string",
+          "enum": [
+            "archive",
+            "external",
+            "database",
+            "tool",
+            "human"
+          ]
+        },
+        "trust_level": {
+          "type": "string",
+          "enum": [
+            "verified",
+            "supported",
+            "unverified",
+            "disputed"
+          ]
+        },
+        "retrieved_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "content_hash": {
+          "$ref": "#/$defs/sha256Hash"
+        }
+      }
+    },
+    "claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "kind",
+        "statement",
+        "confidence",
+        "certainty",
+        "evidence_refs"
+      ],
+      "properties": {
+        "claim_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "premise",
+            "intermediate",
+            "conclusion"
+          ]
+        },
+        "statement": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "confidence": {
+          "$ref": "#/$defs/score"
+        },
+        "certainty": {
+          "type": "string",
+          "enum": [
+            "certain",
+            "probable",
+            "possible",
+            "unknown"
+          ]
+        },
+        "evidence_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "premise"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "evidence_refs": {
+                "minItems": 1
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "evidence_refs": {
+                "maxItems": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    "derivationStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "step_id",
+        "sequence",
+        "operation",
+        "input_refs",
+        "output_claim_id",
+        "rationale",
+        "confidence",
+        "executed_by",
+        "executed_at"
+      ],
+      "properties": {
+        "step_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "operation": {
+          "type": "string",
+          "enum": [
+            "deduction",
+            "induction",
+            "abduction",
+            "analogy",
+            "aggregation",
+            "transformation",
+            "filter",
+            "comparison"
+          ]
+        },
+        "input_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        },
+        "output_claim_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "confidence": {
+          "$ref": "#/$defs/score"
+        },
+        "executed_by": {
+          "$ref": "#/$defs/identifier"
+        },
+        "executed_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    }
+  }
+}
