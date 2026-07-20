@@ -1,0 +1,383 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/knowledge-retention-decision.schema.json",
+  "title": "Knowledge Retention Decision",
+  "description": "Records why a knowledge unit was retained, archived, discarded, or quarantined.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "decision_id",
+    "knowledge_subject",
+    "source_evidence",
+    "origin_bindings",
+    "evaluation",
+    "decision",
+    "policy_snapshot",
+    "trace"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "0.2.0"
+    },
+    "decision_id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "knowledge_subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "knowledge_id",
+        "label",
+        "summary",
+        "content_hash"
+      ],
+      "properties": {
+        "knowledge_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "content_hash": {
+          "$ref": "#/$defs/sha256Hash"
+        },
+        "content_type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "estimated_size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "source_evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/evidence"
+      }
+    },
+    "origin_bindings": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/identifier"
+      }
+    },
+    "evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "essentiality",
+        "recoverability",
+        "redundancy",
+        "freshness",
+        "provenance_quality",
+        "safety_critical"
+      ],
+      "properties": {
+        "essentiality": {
+          "$ref": "#/$defs/score"
+        },
+        "recoverability": {
+          "$ref": "#/$defs/score"
+        },
+        "redundancy": {
+          "$ref": "#/$defs/score"
+        },
+        "freshness": {
+          "$ref": "#/$defs/score"
+        },
+        "provenance_quality": {
+          "$ref": "#/$defs/score"
+        },
+        "safety_critical": {
+          "type": "boolean"
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "classification",
+        "rationale",
+        "confidence",
+        "decided_at",
+        "decided_by",
+        "reversible",
+        "review_required",
+        "approval_ids"
+      ],
+      "properties": {
+        "classification": {
+          "type": "string",
+          "enum": [
+            "retain",
+            "archive",
+            "discard",
+            "quarantine"
+          ]
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "confidence": {
+          "$ref": "#/$defs/score"
+        },
+        "decided_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "decided_by": {
+          "$ref": "#/$defs/identifier"
+        },
+        "reversible": {
+          "type": "boolean"
+        },
+        "review_required": {
+          "type": "boolean"
+        },
+        "target_locator": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "disposal_method": {
+          "type": "string",
+          "enum": [
+            "delete",
+            "overwrite",
+            "detach",
+            "compact"
+          ]
+        },
+        "recovery_method": {
+          "type": "string",
+          "enum": [
+            "archive",
+            "recompute",
+            "source-retrieval",
+            "none"
+          ]
+        },
+        "approval_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        },
+        "review_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "classification": {
+                "const": "archive"
+              }
+            },
+            "required": [
+              "classification"
+            ]
+          },
+          "then": {
+            "required": [
+              "target_locator",
+              "recovery_method"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "classification": {
+                "const": "discard"
+              }
+            },
+            "required": [
+              "classification"
+            ]
+          },
+          "then": {
+            "required": [
+              "disposal_method",
+              "recovery_method"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "classification": {
+                "const": "quarantine"
+              }
+            },
+            "required": [
+              "classification"
+            ]
+          },
+          "then": {
+            "required": [
+              "target_locator",
+              "review_at"
+            ]
+          }
+        }
+      ]
+    },
+    "policy_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minimum_provenance_quality",
+        "retain_if_essentiality_at_or_above",
+        "discard_if_redundancy_at_or_above",
+        "prohibit_irreversible_discard_without_approval",
+        "prohibit_safety_critical_discard",
+        "require_review_for_quarantine"
+      ],
+      "properties": {
+        "minimum_provenance_quality": {
+          "$ref": "#/$defs/score"
+        },
+        "retain_if_essentiality_at_or_above": {
+          "$ref": "#/$defs/score"
+        },
+        "discard_if_redundancy_at_or_above": {
+          "$ref": "#/$defs/score"
+        },
+        "prohibit_irreversible_discard_without_approval": {
+          "type": "boolean"
+        },
+        "prohibit_safety_critical_discard": {
+          "type": "boolean"
+        },
+        "require_review_for_quarantine": {
+          "type": "boolean"
+        }
+      }
+    },
+    "trace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "created_at",
+        "created_by",
+        "parent_record_ids"
+      ],
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "created_by": {
+          "$ref": "#/$defs/identifier"
+        },
+        "parent_record_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        }
+      }
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 128,
+      "pattern": "^[a-z0-9][a-z0-9._:-]*$"
+    },
+    "score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "sha256Hash": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_id",
+        "kind",
+        "locator",
+        "trust_level",
+        "captured_at"
+      ],
+      "properties": {
+        "evidence_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "source",
+            "observation",
+            "policy",
+            "audit",
+            "human-review"
+          ]
+        },
+        "locator": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "trust_level": {
+          "type": "string",
+          "enum": [
+            "verified",
+            "supported",
+            "unverified",
+            "disputed"
+          ]
+        },
+        "captured_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "content_hash": {
+          "$ref": "#/$defs/sha256Hash"
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        }
+      }
+    }
+  }
+}
