@@ -1,0 +1,92 @@
+schema_version: "0.1.0"
+
+record_id: "mokr-20260720-fail-002"
+
+subject:
+  id: "unsupported-certainty"
+  label: "Unsupported Certainty Configuration"
+  description: >-
+    An invalid configuration that permits certainty without
+    sufficient origin or retrieval support.
+
+origin_kernel:
+  principles:
+    - id: "principle-minimal-retention"
+      statement: >-
+        Retain only knowledge required for stable reasoning.
+      authority: "normative"
+
+    - id: "principle-auditable-derivation"
+      statement: >-
+        Derived conclusions must remain inspectable and supported.
+      authority: "normative"
+
+  definitions:
+    origin: >-
+      A minimal knowledge unit required to preserve meaning or causality.
+    derivative: >-
+      A contextual conclusion generated from origins and active context.
+    residue: >-
+      Redundant, obsolete, reproducible, or unnecessary knowledge.
+
+  constraints:
+    - "Unsupported conclusions must not be represented as certain."
+    - "Insufficient knowledge must trigger a safe fallback action."
+
+knowledge_partition:
+  retained:
+    - knowledge_id: "knowledge-origin-001"
+      classification: "origin"
+      summary: >-
+        Derived conclusions must remain connected to retained origins.
+      reason: >-
+        Origin binding is required for traceable reasoning.
+      content_hash: "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+      source_locator: "origin://wind-intelligence/origin-binding"
+
+  archived:
+    - knowledge_id: "knowledge-archive-001"
+      classification: "recallable"
+      summary: >-
+        Supplementary evidence that may be retrieved when confidence
+        falls below the configured uncertainty threshold.
+      locator: "archive://wind-intelligence/evidence"
+      reason: >-
+        The evidence is conditionally useful and does not need to remain
+        permanently active.
+      content_hash: "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+
+  discarded:
+    - knowledge_hash: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      classification: "residue"
+      reason: >-
+        An obsolete evidence cache replaced by the current archive.
+      reversible: true
+      recovery_method: "archive"
+      replacement_locator: "archive://wind-intelligence/evidence"
+      discarded_at: "2026-07-20T09:00:00+09:00"
+
+derivation_policy:
+  require_origin_binding: true
+  require_context_declaration: true
+  permit_external_retrieval: true
+  uncertainty_threshold: 0.35
+  allowed_insufficient_knowledge_actions:
+    - "retrieve"
+    - "defer"
+    - "ask"
+    - "abstain"
+
+audit_policy:
+  verify_origin_integrity: true
+  verify_derivation_trace: true
+  record_retrieval_sources: true
+  prohibit_unsupported_certainty: false
+
+trace:
+  created_at: "2026-07-20T09:00:00+09:00"
+  created_by: "wind-intelligence-agent"
+  parent_record_ids: []
+  notes: >-
+    This record is expected to fail because unsupported certainty
+    is explicitly permitted.
