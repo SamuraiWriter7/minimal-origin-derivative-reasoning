@@ -1,0 +1,146 @@
+schema_version: "0.3.0"
+
+trace_id: "drt-20260720-001"
+
+reasoning_subject:
+  id: "reasoning-archive-examples"
+  label: "Archive implementation examples"
+  query: >-
+    Should detailed implementation examples remain in the active origin
+    kernel or be moved to a recallable archive?
+  requested_at: "2026-07-20T10:00:00+09:00"
+
+declared_context:
+  context_id: "context-wind-retention-001"
+  summary: >-
+    The active kernel should preserve stable reasoning principles while
+    recoverable implementation detail may be externalized.
+  assumptions:
+    - assumption_id: "assumption-archive-available"
+      statement: >-
+        The configured archive remains available to the reasoning system.
+      confidence: 0.90
+      status: "verified"
+
+origin_bindings:
+  - binding_id: "origin-binding-001"
+    origin_record_id: "mokr-20260720-001"
+    knowledge_id: "knowledge-origin-001"
+    role: "principle"
+    summary: >-
+      Retain only knowledge required to preserve stable meaning and
+      reasoning continuity.
+    content_hash: "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+
+  - binding_id: "origin-binding-002"
+    origin_record_id: "mokr-20260720-001"
+    knowledge_id: "knowledge-origin-002"
+    role: "constraint"
+    summary: >-
+      Every derivative conclusion must remain traceable to a retained origin.
+    content_hash: "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+
+retrieval_inputs:
+  - retrieval_id: "retrieval-examples-001"
+    locator: "repository://minimal-origin-derivative-reasoning/examples"
+    source_type: "archive"
+    trust_level: "verified"
+    retrieved_at: "2026-07-20T10:02:00+09:00"
+    summary: >-
+      The implementation examples are reproducible and can be retrieved
+      without remaining permanently active.
+    content_hash: "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+
+claims:
+  - claim_id: "claim-premise-minimal-kernel"
+    kind: "premise"
+    statement: >-
+      Only knowledge required for stable reasoning should remain in the
+      active origin kernel.
+    confidence: 0.96
+    certainty: "probable"
+    evidence_refs:
+      - "origin-binding-001"
+
+  - claim_id: "claim-premise-recoverable"
+    kind: "premise"
+    statement: >-
+      The implementation examples can be retrieved from a verified archive.
+    confidence: 0.94
+    certainty: "probable"
+    evidence_refs:
+      - "retrieval-examples-001"
+      - "assumption-archive-available"
+
+  - claim_id: "claim-intermediate-externalize"
+    kind: "intermediate"
+    statement: >-
+      Removing the examples from the active kernel will not destroy their
+      recoverability or their relationship to the protocol origins.
+    confidence: 0.90
+    certainty: "probable"
+    evidence_refs: []
+
+  - claim_id: "claim-conclusion-archive"
+    kind: "conclusion"
+    statement: >-
+      The implementation examples should be moved to a recallable archive
+      rather than retained in the active origin kernel.
+    confidence: 0.91
+    certainty: "probable"
+    evidence_refs: []
+
+derivation_steps:
+  - step_id: "step-aggregate-001"
+    sequence: 1
+    operation: "aggregation"
+    input_refs:
+      - "claim-premise-minimal-kernel"
+      - "claim-premise-recoverable"
+    output_claim_id: "claim-intermediate-externalize"
+    rationale: >-
+      Combining the minimal-retention principle with verified recoverability
+      shows that active retention is unnecessary.
+    confidence: 0.90
+    executed_by: "wind-reasoning-agent"
+    executed_at: "2026-07-20T10:04:00+09:00"
+
+  - step_id: "step-deduce-001"
+    sequence: 2
+    operation: "deduction"
+    input_refs:
+      - "claim-intermediate-externalize"
+      - "origin-binding-002"
+    output_claim_id: "claim-conclusion-archive"
+    rationale: >-
+      Because externalization preserves recoverability and the conclusion
+      remains bound to a retained origin, archival satisfies the protocol.
+    confidence: 0.91
+    executed_by: "wind-reasoning-agent"
+    executed_at: "2026-07-20T10:05:00+09:00"
+
+final_output:
+  conclusion_claim_ids:
+    - "claim-conclusion-archive"
+  response_summary: >-
+    Archive the implementation examples. Preserve their locator and origin
+    relationship so they can be rehydrated when required.
+  overall_confidence: 0.91
+  insufficient_knowledge_action: "none"
+
+audit_policy:
+  require_origin_reachability: true
+  require_acyclic_trace: true
+  prohibit_orphan_claims: true
+  require_declared_assumptions: true
+  minimum_final_confidence: 0.70
+
+trace:
+  created_at: "2026-07-20T10:06:00+09:00"
+  created_by: "wind-reasoning-agent"
+  parent_record_ids:
+    - "mokr-20260720-001"
+    - "krd-20260720-001"
+  notes: >-
+    Initial v0.3 trace demonstrating an origin-reachable and acyclic
+    derivative reasoning path.
