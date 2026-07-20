@@ -1,0 +1,79 @@
+schema_version: "0.2.0"
+
+decision_id: "krd-20260720-001"
+
+knowledge_subject:
+  knowledge_id: "knowledge-implementation-examples"
+  label: "Implementation Examples"
+  summary: >-
+    Detailed implementation examples showing how minimal-origin
+    reasoning can be applied to specialized agent workflows.
+  content_hash: "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+  content_type: "text/yaml"
+  estimated_size_bytes: 245760
+
+source_evidence:
+  - evidence_id: "evidence-source-001"
+    kind: "source"
+    locator: "repository://minimal-origin-derivative-reasoning/examples"
+    trust_level: "verified"
+    captured_at: "2026-07-20T09:20:00+09:00"
+    content_hash: "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+    notes: >-
+      The examples are reproducible from the protocol specification
+      and remain available in the repository.
+
+  - evidence_id: "evidence-audit-001"
+    kind: "audit"
+    locator: "audit://knowledge-review/20260720"
+    trust_level: "supported"
+    captured_at: "2026-07-20T09:25:00+09:00"
+    notes: >-
+      Audit confirmed that the examples are useful but not required
+      in the permanently active origin kernel.
+
+origin_bindings:
+  - "knowledge-origin-001"
+  - "knowledge-origin-002"
+
+evaluation:
+  essentiality: 0.42
+  recoverability: 0.95
+  redundancy: 0.18
+  freshness: 0.78
+  provenance_quality: 0.92
+  safety_critical: false
+  notes: >-
+    The knowledge is useful for implementation but can be retrieved
+    when needed without reducing the stability of the active kernel.
+
+decision:
+  classification: "archive"
+  rationale: >-
+    The implementation examples are context-specific and recoverable.
+    Keeping them outside the active origin kernel reduces unnecessary
+    retention while preserving complete retrieval capability.
+  confidence: 0.91
+  decided_at: "2026-07-20T09:30:00+09:00"
+  decided_by: "wind-retention-agent"
+  reversible: true
+  review_required: false
+  target_locator: "archive://wind-intelligence/implementation-examples"
+  recovery_method: "source-retrieval"
+  approval_ids: []
+
+policy_snapshot:
+  minimum_provenance_quality: 0.70
+  retain_if_essentiality_at_or_above: 0.80
+  discard_if_redundancy_at_or_above: 0.85
+  prohibit_irreversible_discard_without_approval: true
+  prohibit_safety_critical_discard: true
+  require_review_for_quarantine: true
+
+trace:
+  created_at: "2026-07-20T09:30:00+09:00"
+  created_by: "wind-retention-agent"
+  parent_record_ids:
+    - "mokr-20260720-001"
+  notes: >-
+    Initial v0.2 retention decision demonstrating reversible archival.
