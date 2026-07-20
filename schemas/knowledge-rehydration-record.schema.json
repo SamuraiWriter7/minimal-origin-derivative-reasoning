@@ -1,0 +1,378 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/knowledge-rehydration-record.schema.json",
+  "title": "Knowledge Rehydration Record",
+  "description": "Records the verified retrieval and controlled temporary or candidate integration of knowledge that was previously externalized or unavailable.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "rehydration_id",
+    "request",
+    "origin_bindings",
+    "source_candidates",
+    "integrity_checks",
+    "integration",
+    "audit_policy",
+    "trace"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "0.4.0"
+    },
+    "rehydration_id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_id",
+        "trigger",
+        "requested_knowledge",
+        "target_context_id",
+        "parent_reasoning_trace_id",
+        "minimum_required_confidence",
+        "requested_at",
+        "requested_by"
+      ],
+      "properties": {
+        "request_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "trigger": {
+          "type": "string",
+          "enum": [
+            "low-confidence",
+            "missing-origin",
+            "stale-context",
+            "explicit-recall",
+            "audit-repair"
+          ]
+        },
+        "requested_knowledge": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "target_context_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "parent_reasoning_trace_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "minimum_required_confidence": {
+          "$ref": "#/$defs/score"
+        },
+        "requested_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "requested_by": {
+          "$ref": "#/$defs/identifier"
+        }
+      }
+    },
+    "origin_bindings": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/identifier"
+      }
+    },
+    "source_candidates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/sourceCandidate"
+      }
+    },
+    "integrity_checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hash_verified",
+        "provenance_verified",
+        "schema_valid",
+        "conflict_status",
+        "checked_at",
+        "checked_by"
+      ],
+      "properties": {
+        "hash_verified": {
+          "type": "boolean"
+        },
+        "provenance_verified": {
+          "type": "boolean"
+        },
+        "schema_valid": {
+          "type": "boolean"
+        },
+        "conflict_status": {
+          "type": "string",
+          "enum": [
+            "none",
+            "resolved",
+            "unresolved"
+          ]
+        },
+        "checked_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "checked_by": {
+          "$ref": "#/$defs/identifier"
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        }
+      }
+    },
+    "integration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "integration_mode",
+        "selected_source_ids",
+        "confidence",
+        "rationale",
+        "isolation_scope",
+        "approval_ids",
+        "conflict_resolution_ids"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "integrated",
+            "rejected",
+            "deferred"
+          ]
+        },
+        "integration_mode": {
+          "type": "string",
+          "enum": [
+            "temporary",
+            "permanent-candidate",
+            "none"
+          ]
+        },
+        "selected_source_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        },
+        "integrated_knowledge_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "integrated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "confidence": {
+          "$ref": "#/$defs/score"
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "isolation_scope": {
+          "type": "string",
+          "enum": [
+            "session",
+            "task",
+            "agent",
+            "global",
+            "none"
+          ]
+        },
+        "retention_decision_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "approval_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        },
+        "rollback_locator": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "conflict_resolution_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        }
+      }
+    },
+    "audit_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "require_verified_hash",
+        "require_provenance_verification",
+        "prohibit_disputed_sources",
+        "require_expiry_for_temporary",
+        "prohibit_permanent_integration_without_retention_decision",
+        "minimum_source_relevance",
+        "minimum_source_freshness"
+      ],
+      "properties": {
+        "require_verified_hash": {
+          "type": "boolean"
+        },
+        "require_provenance_verification": {
+          "type": "boolean"
+        },
+        "prohibit_disputed_sources": {
+          "type": "boolean"
+        },
+        "require_expiry_for_temporary": {
+          "type": "boolean"
+        },
+        "prohibit_permanent_integration_without_retention_decision": {
+          "type": "boolean"
+        },
+        "minimum_source_relevance": {
+          "$ref": "#/$defs/score"
+        },
+        "minimum_source_freshness": {
+          "$ref": "#/$defs/score"
+        }
+      }
+    },
+    "trace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "created_at",
+        "created_by",
+        "parent_record_ids"
+      ],
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "created_by": {
+          "$ref": "#/$defs/identifier"
+        },
+        "parent_record_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        }
+      }
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 128,
+      "pattern": "^[a-z0-9][a-z0-9._:-]*$"
+    },
+    "score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "sha256Hash": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "sourceCandidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_id",
+        "locator",
+        "source_type",
+        "trust_level",
+        "retrieved_at",
+        "content_hash",
+        "freshness_score",
+        "relevance_score",
+        "selected",
+        "summary"
+      ],
+      "properties": {
+        "source_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "locator": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "source_type": {
+          "type": "string",
+          "enum": [
+            "archive",
+            "external",
+            "database",
+            "tool",
+            "human"
+          ]
+        },
+        "trust_level": {
+          "type": "string",
+          "enum": [
+            "verified",
+            "supported",
+            "unverified",
+            "disputed"
+          ]
+        },
+        "retrieved_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "content_hash": {
+          "$ref": "#/$defs/sha256Hash"
+        },
+        "freshness_score": {
+          "$ref": "#/$defs/score"
+        },
+        "relevance_score": {
+          "$ref": "#/$defs/score"
+        },
+        "selected": {
+          "type": "boolean"
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "provenance_record_id": {
+          "$ref": "#/$defs/identifier"
+        }
+      }
+    }
+  }
+}
