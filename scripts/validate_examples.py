@@ -2,31 +2,20 @@
 """
 Validate Minimal Origin-Derivative Reasoning Protocol examples.
 
-Supported protocol records:
+Supported records:
+    v0.1 Minimal Origin Knowledge Record
+    v0.2 Knowledge Retention Decision
+    v0.3 Derivative Reasoning Trace
 
-v0.1
-    Minimal Origin Knowledge Record
-
-v0.2
-    Knowledge Retention Decision
-
-Validation stages:
-
-1. JSON Schema validation
-2. Protocol-specific semantic validation
-
-Pass examples must pass both stages.
-Fail examples must fail at least one stage.
-
-Dependencies:
-    pip install -r requirements.txt
+Pass examples must pass JSON Schema and semantic validation.
+Fail examples must fail at least one validation stage.
 """
 
 from __future__ import annotations
 
 import json
 import sys
-from collections import Counter
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -38,7 +27,6 @@ from jsonschema.exceptions import SchemaError
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-
 SemanticValidator = Callable[[Mapping[str, Any]], list[str]]
 
 
@@ -48,7 +36,7 @@ class ValidationFailure(Exception):
 
 @dataclass(frozen=True)
 class ValidationTarget:
-    """Defines one schema and its associated examples."""
+    """A schema, its examples, and its semantic validator."""
 
     name: str
     schema_path: Path
@@ -58,7 +46,7 @@ class ValidationTarget:
 
 
 def load_json(path: Path) -> Mapping[str, Any]:
-    """Load a JSON object."""
+    """Load a JSON object from disk."""
 
     try:
         with path.open("r", encoding="utf-8") as file:
@@ -67,13 +55,11 @@ def load_json(path: Path) -> Mapping[str, Any]:
         raise ValidationFailure(f"File not found: {path}") from exc
     except json.JSONDecodeError as exc:
         raise ValidationFailure(
-            f"Invalid JSON in {path}: "
-            f"line {exc.lineno}, column {exc.colno}: {exc.msg}"
+            f"Invalid JSON in {path}: line {exc.lineno}, "
+            f"column {exc.colno}: {exc.msg}"
         ) from exc
     except OSError as exc:
-        raise ValidationFailure(
-            f"Could not read {path}: {exc}"
-        ) from exc
+        raise ValidationFailure(f"Could not read {path}: {exc}") from exc
 
     if not isinstance(value, Mapping):
         raise ValidationFailure(
@@ -96,17 +82,15 @@ def load_example(path: Path) -> Mapping[str, Any]:
         raise ValidationFailure(f"File not found: {path}") from exc
     except json.JSONDecodeError as exc:
         raise ValidationFailure(
-            f"Invalid JSON in {path}: "
-            f"line {exc.lineno}, column {exc.colno}: {exc.msg}"
+            f"Invalid JSON in {path}: line {exc.lineno}, "
+            f"column {exc.colno}: {exc.msg}"
         ) from exc
     except yaml.YAMLError as exc:
         raise ValidationFailure(
             f"Invalid YAML in {path}: {exc}"
         ) from exc
     except OSError as exc:
-        raise ValidationFailure(
-            f"Could not read {path}: {exc}"
-        ) from exc
+        raise ValidationFailure(f"Could not read {path}: {exc}") from exc
 
     if not isinstance(value, Mapping):
         raise ValidationFailure(
@@ -119,7 +103,7 @@ def load_example(path: Path) -> Mapping[str, Any]:
 def build_validator(
     schema: Mapping[str, Any],
 ) -> Draft202012Validator:
-    """Validate a schema definition and create its validator."""
+    """Validate a schema definition and construct its validator."""
 
     try:
         Draft202012Validator.check_schema(schema)
@@ -135,7 +119,7 @@ def build_validator(
 
 
 def format_instance_path(path_parts: Iterable[Any]) -> str:
-    """Convert a jsonschema path into readable dotted notation."""
+    """Convert a jsonschema path into dotted notation."""
 
     result = ""
 
@@ -156,9 +140,7 @@ def validate_schema(
 ) -> list[str]:
     """Return all JSON Schema errors for an instance."""
 
-    errors: list[str] = []
-
-    sorted_errors = sorted(
+    errors = sorted(
         validator.iter_errors(instance),
         key=lambda error: (
             format_instance_path(error.absolute_path),
@@ -166,11 +148,11 @@ def validate_schema(
         ),
     )
 
-    for error in sorted_errors:
-        location = format_instance_path(error.absolute_path)
-        errors.append(f"{location}: {error.message}")
-
-    return errors
+    return [
+        f"{format_instance_path(error.absolute_path)}: "
+        f"{error.message}"
+        for error in errors
+    ]
 
 
 def duplicate_values(values: Sequence[str]) -> list[str]:
@@ -188,10 +170,11 @@ def duplicate_values(values: Sequence[str]) -> list[str]:
 def parse_datetime(value: str) -> datetime:
     """Parse an ISO-8601 datetime string."""
 
-    normalized = value
-
-    if normalized.endswith("Z"):
-        normalized = normalized[:-1] + "+00:00"
+    normalized = (
+        value[:-1] + "+00:00"
+        if value.endswith("Z")
+        else value
+    )
 
     return datetime.fromisoformat(normalized)
 
@@ -199,7 +182,7 @@ def parse_datetime(value: str) -> datetime:
 def validate_minimal_origin_knowledge_record(
     instance: Mapping[str, Any],
 ) -> list[str]:
-    """Apply v0.1 semantic validation rules."""
+    """Apply v0.1 semantic rules."""
 
     errors: list[str] = []
 
@@ -210,33 +193,27 @@ def validate_minimal_origin_knowledge_record(
     audit_policy = instance["audit_policy"]
     trace = instance["trace"]
 
-    principles = origin_kernel["principles"]
-    definitions = origin_kernel["definitions"]
-
-    retained = partition["retained"]
-    archived = partition["archived"]
-    discarded = partition["discarded"]
-
     required_definitions = {
         "origin",
         "derivative",
         "residue",
     }
 
-    missing_definitions = sorted(
-        required_definitions.difference(definitions.keys())
+    missing = sorted(
+        required_definitions.difference(
+            origin_kernel["definitions"].keys()
+        )
     )
 
-    for definition_name in missing_definitions:
+    for name in missing:
         errors.append(
             "origin_kernel.definitions: "
-            f"missing required semantic definition "
-            f"'{definition_name}'"
+            f"missing required semantic definition '{name}'"
         )
 
     principle_ids = [
-        principle["id"]
-        for principle in principles
+        item["id"]
+        for item in origin_kernel["principles"]
     ]
 
     for duplicate_id in duplicate_values(principle_ids):
@@ -247,12 +224,12 @@ def validate_minimal_origin_knowledge_record(
 
     retained_ids = [
         item["knowledge_id"]
-        for item in retained
+        for item in partition["retained"]
     ]
 
     archived_ids = [
         item["knowledge_id"]
-        for item in archived
+        for item in partition["archived"]
     ]
 
     for duplicate_id in duplicate_values(
@@ -265,10 +242,12 @@ def validate_minimal_origin_knowledge_record(
 
     discarded_hashes = [
         item["knowledge_hash"]
-        for item in discarded
+        for item in partition["discarded"]
     ]
 
-    for duplicate_hash in duplicate_values(discarded_hashes):
+    for duplicate_hash in duplicate_values(
+        discarded_hashes
+    ):
         errors.append(
             "knowledge_partition.discarded: "
             f"duplicate knowledge hash '{duplicate_hash}'"
@@ -278,10 +257,12 @@ def validate_minimal_origin_knowledge_record(
         errors.append(
             "derivation_policy.require_origin_binding: "
             "must be true; derivative conclusions may not exist "
-            "without retained origin bindings"
+            "without retained origins"
         )
 
-    if not derivation_policy["require_context_declaration"]:
+    if not derivation_policy[
+        "require_context_declaration"
+    ]:
         errors.append(
             "derivation_policy.require_context_declaration: "
             "must be true to preserve contextual traceability"
@@ -289,12 +270,12 @@ def validate_minimal_origin_knowledge_record(
 
     if (
         derivation_policy["permit_external_retrieval"]
-        and not archived
+        and not partition["archived"]
     ):
         errors.append(
             "knowledge_partition.archived: "
-            "must contain at least one item when external retrieval "
-            "is permitted"
+            "must contain at least one item when external "
+            "retrieval is permitted"
         )
 
     safe_actions = set(
@@ -310,8 +291,7 @@ def validate_minimal_origin_knowledge_record(
             "allowed_insufficient_knowledge_actions: "
             "at least one safe fallback action is required"
         )
-
-    if {
+    elif {
         "retrieve",
         "defer",
         "ask",
@@ -340,16 +320,20 @@ def validate_minimal_origin_knowledge_record(
                 f"audit_policy.{field_name}: {message}"
             )
 
-    for index, item in enumerate(discarded):
+    for index, item in enumerate(
+        partition["discarded"]
+    ):
         reversible = item["reversible"]
         recovery_method = item["recovery_method"]
-        replacement_locator = item.get("replacement_locator")
+        replacement_locator = item.get(
+            "replacement_locator"
+        )
 
         if reversible and recovery_method == "none":
             errors.append(
                 f"knowledge_partition.discarded[{index}]."
-                "recovery_method: reversible residue cannot use "
-                "'none'"
+                "recovery_method: reversible residue cannot "
+                "use 'none'"
             )
 
         if (
@@ -368,8 +352,8 @@ def validate_minimal_origin_knowledge_record(
         ):
             errors.append(
                 f"knowledge_partition.discarded[{index}]."
-                "recovery_method: irreversible residue must use "
-                "'none'"
+                "recovery_method: irreversible residue must "
+                "use 'none'"
             )
 
     if record_id in trace["parent_record_ids"]:
@@ -380,7 +364,7 @@ def validate_minimal_origin_knowledge_record(
 
     archive_locators = [
         item["locator"]
-        for item in archived
+        for item in partition["archived"]
     ]
 
     for duplicate_locator in duplicate_values(
@@ -388,7 +372,8 @@ def validate_minimal_origin_knowledge_record(
     ):
         errors.append(
             "knowledge_partition.archived: "
-            f"duplicate archive locator '{duplicate_locator}'"
+            f"duplicate archive locator "
+            f"'{duplicate_locator}'"
         )
 
     return errors
@@ -397,7 +382,7 @@ def validate_minimal_origin_knowledge_record(
 def validate_knowledge_retention_decision(
     instance: Mapping[str, Any],
 ) -> list[str]:
-    """Apply v0.2 semantic validation rules."""
+    """Apply v0.2 semantic rules."""
 
     errors: list[str] = []
 
@@ -408,11 +393,6 @@ def validate_knowledge_retention_decision(
     decision = instance["decision"]
     policy = instance["policy_snapshot"]
     trace = instance["trace"]
-
-    classification = decision["classification"]
-    reversible = decision["reversible"]
-    review_required = decision["review_required"]
-    approval_ids = decision["approval_ids"]
 
     evidence_ids = [
         item["evidence_id"]
@@ -427,40 +407,47 @@ def validate_knowledge_retention_decision(
 
     if not origin_bindings:
         errors.append(
-            "origin_bindings: "
-            "at least one retained origin binding is required "
-            "for every retention decision"
+            "origin_bindings: at least one retained origin "
+            "binding is required for every retention decision"
         )
 
     if len(set(origin_bindings)) != len(origin_bindings):
         errors.append(
-            "origin_bindings: "
-            "duplicate origin bindings are not permitted"
+            "origin_bindings: duplicate origin bindings "
+            "are not permitted"
         )
 
     minimum_provenance = policy[
         "minimum_provenance_quality"
     ]
 
-    if evaluation["provenance_quality"] < minimum_provenance:
+    if (
+        evaluation["provenance_quality"]
+        < minimum_provenance
+    ):
         errors.append(
-            "evaluation.provenance_quality: "
-            f"value {evaluation['provenance_quality']} is below "
+            "evaluation.provenance_quality: value "
+            f"{evaluation['provenance_quality']} is below "
             f"the policy minimum {minimum_provenance}"
         )
+
+    classification = decision["classification"]
+    reversible = decision["reversible"]
+    approval_ids = decision["approval_ids"]
 
     essentiality_threshold = policy[
         "retain_if_essentiality_at_or_above"
     ]
 
     if (
-        evaluation["essentiality"] >= essentiality_threshold
+        evaluation["essentiality"]
+        >= essentiality_threshold
         and classification != "retain"
     ):
         errors.append(
-            "decision.classification: "
-            "knowledge meeting the essentiality retention threshold "
-            "must be classified as 'retain'"
+            "decision.classification: knowledge meeting "
+            "the essentiality threshold must be classified "
+            "as 'retain'"
         )
 
     discard_threshold = policy[
@@ -469,40 +456,42 @@ def validate_knowledge_retention_decision(
 
     if (
         classification == "discard"
-        and evaluation["redundancy"] < discard_threshold
+        and evaluation["redundancy"]
+        < discard_threshold
     ):
         errors.append(
-            "evaluation.redundancy: "
-            f"discard requires redundancy at or above "
-            f"{discard_threshold}"
+            "evaluation.redundancy: discard requires "
+            f"redundancy at or above {discard_threshold}"
         )
 
     if classification == "archive":
         if not reversible:
             errors.append(
-                "decision.reversible: "
-                "archive decisions must be reversible"
+                "decision.reversible: archive decisions "
+                "must be reversible"
             )
 
         if not decision.get("target_locator"):
             errors.append(
-                "decision.target_locator: "
-                "archive decisions require a target locator"
+                "decision.target_locator: archive requires "
+                "a target locator"
             )
 
         if decision.get("recovery_method") == "none":
             errors.append(
-                "decision.recovery_method: "
-                "archive decisions cannot use 'none'"
+                "decision.recovery_method: archive cannot "
+                "use 'none'"
             )
 
     if classification == "discard":
-        recovery_method = decision.get("recovery_method")
+        recovery_method = decision.get(
+            "recovery_method"
+        )
 
         if reversible and recovery_method == "none":
             errors.append(
-                "decision.recovery_method: "
-                "reversible discard cannot use 'none'"
+                "decision.recovery_method: reversible discard "
+                "cannot use 'none'"
             )
 
         if (
@@ -510,8 +499,8 @@ def validate_knowledge_retention_decision(
             and recovery_method != "none"
         ):
             errors.append(
-                "decision.recovery_method: "
-                "irreversible discard must use 'none'"
+                "decision.recovery_method: irreversible "
+                "discard must use 'none'"
             )
 
         if (
@@ -522,77 +511,507 @@ def validate_knowledge_retention_decision(
             and not approval_ids
         ):
             errors.append(
-                "decision.approval_ids: "
-                "irreversible discard requires at least one "
-                "approval under the active policy"
+                "decision.approval_ids: irreversible discard "
+                "requires at least one approval under the "
+                "active policy"
             )
 
         if (
             evaluation["safety_critical"]
-            and policy["prohibit_safety_critical_discard"]
+            and policy[
+                "prohibit_safety_critical_discard"
+            ]
         ):
             errors.append(
-                "decision.classification: "
-                "safety-critical knowledge cannot be discarded "
-                "under the active policy"
+                "decision.classification: safety-critical "
+                "knowledge cannot be discarded"
             )
 
-    if classification == "retain":
-        if decision.get("disposal_method") is not None:
-            errors.append(
-                "decision.disposal_method: "
-                "retained knowledge cannot define a disposal method"
-            )
-
-        if decision.get("recovery_method") == "none":
-            errors.append(
-                "decision.recovery_method: "
-                "retained knowledge must not be marked "
-                "unrecoverable"
-            )
+    if (
+        classification == "retain"
+        and decision.get("disposal_method") is not None
+    ):
+        errors.append(
+            "decision.disposal_method: retained knowledge "
+            "cannot define a disposal method"
+        )
 
     if classification == "quarantine":
         if (
             policy["require_review_for_quarantine"]
-            and not review_required
+            and not decision["review_required"]
         ):
             errors.append(
-                "decision.review_required: "
-                "quarantine requires review under the active policy"
+                "decision.review_required: quarantine requires "
+                "review under the policy"
             )
 
         if not decision.get("target_locator"):
             errors.append(
-                "decision.target_locator: "
-                "quarantine requires an isolation locator"
+                "decision.target_locator: quarantine requires "
+                "an isolation locator"
             )
 
         if not decision.get("review_at"):
             errors.append(
-                "decision.review_at: "
-                "quarantine requires a scheduled review time"
+                "decision.review_at: quarantine requires "
+                "a review time"
             )
 
-    if review_required and not decision.get("review_at"):
+    if (
+        decision["review_required"]
+        and not decision.get("review_at")
+    ):
         errors.append(
-            "decision.review_at: "
-            "review_at is required when review_required is true"
+            "decision.review_at: required when "
+            "review_required is true"
         )
 
     if decision.get("review_at"):
-        decided_at = parse_datetime(decision["decided_at"])
-        review_at = parse_datetime(decision["review_at"])
+        review_at = parse_datetime(
+            decision["review_at"]
+        )
+
+        decided_at = parse_datetime(
+            decision["decided_at"]
+        )
 
         if review_at <= decided_at:
             errors.append(
-                "decision.review_at: "
-                "review time must occur after the decision time"
+                "decision.review_at: review time must occur "
+                "after the decision time"
             )
 
     if decision_id in trace["parent_record_ids"]:
         errors.append(
-            "trace.parent_record_ids: "
-            "a decision cannot reference itself as a parent"
+            "trace.parent_record_ids: a decision cannot "
+            "reference itself as a parent"
+        )
+
+    return errors
+
+
+def find_claim_cycle(
+    claim_dependencies: Mapping[str, set[str]],
+) -> list[str] | None:
+    """Return one claim cycle or None."""
+
+    state: dict[str, int] = {}
+    stack: list[str] = []
+
+    def visit(claim_id: str) -> list[str] | None:
+        current_state = state.get(claim_id, 0)
+
+        if current_state == 1:
+            start = stack.index(claim_id)
+            return stack[start:] + [claim_id]
+
+        if current_state == 2:
+            return None
+
+        state[claim_id] = 1
+        stack.append(claim_id)
+
+        for dependency in sorted(
+            claim_dependencies.get(claim_id, set())
+        ):
+            cycle = visit(dependency)
+
+            if cycle:
+                return cycle
+
+        stack.pop()
+        state[claim_id] = 2
+
+        return None
+
+    for claim_id in sorted(claim_dependencies):
+        cycle = visit(claim_id)
+
+        if cycle:
+            return cycle
+
+    return None
+
+
+def validate_derivative_reasoning_trace(
+    instance: Mapping[str, Any],
+) -> list[str]:
+    """Apply v0.3 semantic rules."""
+
+    errors: list[str] = []
+
+    trace_id = instance["trace_id"]
+    context = instance["declared_context"]
+    origins = instance["origin_bindings"]
+    retrievals = instance["retrieval_inputs"]
+    claims = instance["claims"]
+    steps = instance["derivation_steps"]
+    final_output = instance["final_output"]
+    policy = instance["audit_policy"]
+    trace = instance["trace"]
+
+    assumption_ids = [
+        item["assumption_id"]
+        for item in context["assumptions"]
+    ]
+
+    origin_ids = [
+        item["binding_id"]
+        for item in origins
+    ]
+
+    retrieval_ids = [
+        item["retrieval_id"]
+        for item in retrievals
+    ]
+
+    claim_ids = [
+        item["claim_id"]
+        for item in claims
+    ]
+
+    step_ids = [
+        item["step_id"]
+        for item in steps
+    ]
+
+    referenceable_ids = (
+        assumption_ids
+        + origin_ids
+        + retrieval_ids
+        + claim_ids
+        + step_ids
+    )
+
+    for duplicate_id in duplicate_values(
+        referenceable_ids
+    ):
+        errors.append(
+            "reference identifiers: identifier must be "
+            f"globally unique: '{duplicate_id}'"
+        )
+
+    sequences = [
+        str(item["sequence"])
+        for item in steps
+    ]
+
+    for duplicate_sequence in duplicate_values(
+        sequences
+    ):
+        errors.append(
+            "derivation_steps.sequence: duplicate "
+            f"sequence number {duplicate_sequence}"
+        )
+
+    claim_by_id = {
+        item["claim_id"]: item
+        for item in claims
+    }
+
+    assumption_by_id = {
+        item["assumption_id"]: item
+        for item in context["assumptions"]
+    }
+
+    root_ids = (
+        set(assumption_ids)
+        | set(origin_ids)
+        | set(retrieval_ids)
+    )
+
+    valid_input_ids = (
+        root_ids
+        | set(claim_ids)
+    )
+
+    for claim in claims:
+        if claim["kind"] != "premise":
+            continue
+
+        for evidence_ref in claim["evidence_refs"]:
+            if evidence_ref not in root_ids:
+                errors.append(
+                    f"claims.{claim['claim_id']}."
+                    "evidence_refs: unresolved root "
+                    f"reference '{evidence_ref}'"
+                )
+
+            assumption = assumption_by_id.get(
+                evidence_ref
+            )
+
+            if (
+                assumption
+                and assumption["status"] == "rejected"
+            ):
+                errors.append(
+                    f"claims.{claim['claim_id']}."
+                    "evidence_refs: rejected assumption "
+                    f"'{evidence_ref}' cannot support a premise"
+                )
+
+    producers: dict[str, list[str]] = defaultdict(list)
+    consumed_claim_ids: set[str] = set()
+
+    claim_dependencies: dict[str, set[str]] = {
+        claim_id: set()
+        for claim_id in claim_ids
+    }
+
+    for step in steps:
+        step_id = step["step_id"]
+        output_claim_id = step["output_claim_id"]
+
+        if output_claim_id not in claim_by_id:
+            errors.append(
+                f"derivation_steps.{step_id}."
+                "output_claim_id: unknown claim "
+                f"'{output_claim_id}'"
+            )
+            continue
+
+        output_claim = claim_by_id[
+            output_claim_id
+        ]
+
+        if output_claim["kind"] == "premise":
+            errors.append(
+                f"derivation_steps.{step_id}."
+                "output_claim_id: a derivation step "
+                "cannot produce a premise"
+            )
+
+        producers[output_claim_id].append(step_id)
+
+        for input_ref in step["input_refs"]:
+            if input_ref not in valid_input_ids:
+                errors.append(
+                    f"derivation_steps.{step_id}."
+                    "input_refs: unresolved reference "
+                    f"'{input_ref}'"
+                )
+                continue
+
+            assumption = assumption_by_id.get(
+                input_ref
+            )
+
+            if (
+                assumption
+                and assumption["status"] == "rejected"
+            ):
+                errors.append(
+                    f"derivation_steps.{step_id}."
+                    "input_refs: rejected assumption "
+                    f"'{input_ref}' cannot be used"
+                )
+
+            if input_ref in claim_by_id:
+                consumed_claim_ids.add(input_ref)
+
+                claim_dependencies[
+                    output_claim_id
+                ].add(input_ref)
+
+                if input_ref == output_claim_id:
+                    errors.append(
+                        f"derivation_steps.{step_id}."
+                        "input_refs: a claim cannot "
+                        "directly derive itself"
+                    )
+
+    for claim in claims:
+        claim_id = claim["claim_id"]
+
+        producer_count = len(
+            producers.get(claim_id, [])
+        )
+
+        if (
+            claim["kind"] == "premise"
+            and producer_count
+        ):
+            errors.append(
+                f"claims.{claim_id}: a premise must "
+                "not have a producing step"
+            )
+
+        if (
+            claim["kind"] != "premise"
+            and producer_count != 1
+        ):
+            errors.append(
+                f"claims.{claim_id}: "
+                f"{claim['kind']} claims require exactly "
+                f"one producing step; found {producer_count}"
+            )
+
+    final_ids = final_output[
+        "conclusion_claim_ids"
+    ]
+
+    for conclusion_id in final_ids:
+        claim = claim_by_id.get(conclusion_id)
+
+        if claim is None:
+            errors.append(
+                "final_output.conclusion_claim_ids: "
+                f"unknown claim '{conclusion_id}'"
+            )
+        elif claim["kind"] != "conclusion":
+            errors.append(
+                "final_output.conclusion_claim_ids: "
+                f"'{conclusion_id}' is not a conclusion claim"
+            )
+
+    if policy["prohibit_orphan_claims"]:
+        final_id_set = set(final_ids)
+
+        for claim_id in claim_ids:
+            if (
+                claim_id not in consumed_claim_ids
+                and claim_id not in final_id_set
+            ):
+                errors.append(
+                    f"claims.{claim_id}: orphan claim is "
+                    "neither consumed by another step nor "
+                    "declared as a final conclusion"
+                )
+
+    if policy["require_acyclic_trace"]:
+        cycle = find_claim_cycle(
+            claim_dependencies
+        )
+
+        if cycle:
+            errors.append(
+                "derivation_steps: cyclic claim dependency "
+                "detected: "
+                + " -> ".join(cycle)
+            )
+
+    step_by_output = {
+        step["output_claim_id"]: step
+        for step in steps
+        if step["output_claim_id"] in claim_by_id
+    }
+
+    origin_id_set = set(origin_ids)
+    reachability_memo: dict[str, bool] = {}
+
+    def reaches_origin(
+        claim_id: str,
+        visiting: set[str],
+    ) -> bool:
+        if claim_id in reachability_memo:
+            return reachability_memo[claim_id]
+
+        if claim_id in visiting:
+            return False
+
+        claim = claim_by_id[claim_id]
+
+        next_visiting = set(visiting)
+        next_visiting.add(claim_id)
+
+        if claim["kind"] == "premise":
+            result = any(
+                evidence_ref in origin_id_set
+                for evidence_ref in claim["evidence_refs"]
+            )
+
+            reachability_memo[claim_id] = result
+            return result
+
+        step = step_by_output.get(claim_id)
+
+        if step is None:
+            reachability_memo[claim_id] = False
+            return False
+
+        for input_ref in step["input_refs"]:
+            if input_ref in origin_id_set:
+                reachability_memo[claim_id] = True
+                return True
+
+            if (
+                input_ref in claim_by_id
+                and reaches_origin(
+                    input_ref,
+                    next_visiting,
+                )
+            ):
+                reachability_memo[claim_id] = True
+                return True
+
+        reachability_memo[claim_id] = False
+        return False
+
+    if policy["require_origin_reachability"]:
+        for conclusion_id in final_ids:
+            if (
+                conclusion_id in claim_by_id
+                and not reaches_origin(
+                    conclusion_id,
+                    set(),
+                )
+            ):
+                errors.append(
+                    "final_output.conclusion_claim_ids: "
+                    f"conclusion '{conclusion_id}' is not "
+                    "reachable from a retained origin"
+                )
+
+    mandatory_flags = {
+        "require_origin_reachability":
+            "origin reachability must be enabled",
+        "require_acyclic_trace":
+            "acyclic trace validation must be enabled",
+        "prohibit_orphan_claims":
+            "orphan claim detection must be enabled",
+        "require_declared_assumptions":
+            "assumption declaration must be enabled",
+    }
+
+    for field_name, message in mandatory_flags.items():
+        if not policy[field_name]:
+            errors.append(
+                f"audit_policy.{field_name}: {message}"
+            )
+
+    threshold = policy[
+        "minimum_final_confidence"
+    ]
+
+    low_confidence_final = any(
+        claim_by_id[claim_id]["confidence"]
+        < threshold
+        for claim_id in final_ids
+        if claim_id in claim_by_id
+    )
+
+    if (
+        (
+            final_output["overall_confidence"]
+            < threshold
+            or low_confidence_final
+        )
+        and final_output[
+            "insufficient_knowledge_action"
+        ] == "none"
+    ):
+        errors.append(
+            "final_output.insufficient_knowledge_action: "
+            "a safe action is required when final "
+            "confidence is below the policy threshold"
+        )
+
+    if trace_id in trace["parent_record_ids"]:
+        errors.append(
+            "trace.parent_record_ids: a trace cannot "
+            "reference itself as a parent"
         )
 
     return errors
@@ -653,6 +1072,33 @@ TARGETS: tuple[ValidationTarget, ...] = (
             validate_knowledge_retention_decision
         ),
     ),
+    ValidationTarget(
+        name="Derivative Reasoning Trace",
+        schema_path=(
+            REPO_ROOT
+            / "schemas"
+            / "derivative-reasoning-trace.schema.json"
+        ),
+        pass_examples=(
+            REPO_ROOT
+            / "examples"
+            / "pass"
+            / "derivative-reasoning-trace.example.yaml",
+        ),
+        fail_examples=(
+            REPO_ROOT
+            / "examples"
+            / "fail"
+            / "orphan-derived-claim.example.yaml",
+            REPO_ROOT
+            / "examples"
+            / "fail"
+            / "cyclic-derivation-trace.example.yaml",
+        ),
+        semantic_validator=(
+            validate_derivative_reasoning_trace
+        ),
+    ),
 )
 
 
@@ -661,7 +1107,7 @@ def validate_instance(
     validator: Draft202012Validator,
     semantic_validator: SemanticValidator,
 ) -> tuple[list[str], list[str]]:
-    """Run schema and semantic validation for one instance."""
+    """Run schema and semantic validation."""
 
     instance = load_example(path)
 
@@ -673,9 +1119,11 @@ def validate_instance(
     if schema_errors:
         return schema_errors, []
 
-    semantic_errors = semantic_validator(instance)
+    semantic_errors = semantic_validator(
+        instance
+    )
 
-    return schema_errors, semantic_errors
+    return [], semantic_errors
 
 
 def print_errors(
@@ -693,27 +1141,36 @@ def validate_pass_example(
     validator: Draft202012Validator,
     semantic_validator: SemanticValidator,
 ) -> bool:
-    """Return True when a pass example behaves correctly."""
-
-    relative_path = path.relative_to(REPO_ROOT)
+    """Validate an example expected to pass."""
 
     print()
-    print(f"[validate-pass] {relative_path}")
+    print(
+        f"[validate-pass] "
+        f"{path.relative_to(REPO_ROOT)}"
+    )
 
-    schema_errors, semantic_errors = validate_instance(
-        path,
-        validator,
-        semantic_validator,
+    schema_errors, semantic_errors = (
+        validate_instance(
+            path,
+            validator,
+            semantic_validator,
+        )
     )
 
     if schema_errors:
-        print_errors("schema-error", schema_errors)
+        print_errors(
+            "schema-error",
+            schema_errors,
+        )
         return False
 
     print("[schema-ok]")
 
     if semantic_errors:
-        print_errors("semantic-error", semantic_errors)
+        print_errors(
+            "semantic-error",
+            semantic_errors,
+        )
         return False
 
     print("[semantic-ok]")
@@ -727,17 +1184,20 @@ def validate_fail_example(
     validator: Draft202012Validator,
     semantic_validator: SemanticValidator,
 ) -> bool:
-    """Return True when a fail example fails as expected."""
-
-    relative_path = path.relative_to(REPO_ROOT)
+    """Validate an example expected to fail."""
 
     print()
-    print(f"[validate-fail] {relative_path}")
+    print(
+        f"[validate-fail] "
+        f"{path.relative_to(REPO_ROOT)}"
+    )
 
-    schema_errors, semantic_errors = validate_instance(
-        path,
-        validator,
-        semantic_validator,
+    schema_errors, semantic_errors = (
+        validate_instance(
+            path,
+            validator,
+            semantic_validator,
+        )
     )
 
     if schema_errors:
@@ -759,8 +1219,8 @@ def validate_fail_example(
         return True
 
     print(
-        "[unexpected-pass] "
-        "The fail example passed schema and semantic validation."
+        "[unexpected-pass] The fail example passed "
+        "schema and semantic validation."
     )
 
     return False
@@ -769,15 +1229,7 @@ def validate_fail_example(
 def validate_target(
     target: ValidationTarget,
 ) -> tuple[int, int, int, int]:
-    """
-    Validate one protocol target.
-
-    Returns:
-        pass_count
-        fail_count
-        unexpected_failures
-        unexpected_passes
-    """
+    """Validate one protocol target."""
 
     print()
     print("=" * 72)
@@ -820,7 +1272,7 @@ def validate_target(
 
 
 def main() -> int:
-    """Run all protocol validation targets."""
+    """Run all validation targets."""
 
     print(
         "=== Minimal Origin-Derivative Reasoning "
@@ -843,13 +1295,20 @@ def main() -> int:
 
             total_pass_examples += pass_count
             total_fail_examples += fail_count
-            total_unexpected_failures += unexpected_failures
-            total_unexpected_passes += unexpected_passes
+
+            total_unexpected_failures += (
+                unexpected_failures
+            )
+
+            total_unexpected_passes += (
+                unexpected_passes
+            )
 
     except ValidationFailure as exc:
         print()
         print(f"[fatal] {exc}")
         return 1
+
     except Exception as exc:
         print()
         print(
@@ -865,10 +1324,12 @@ def main() -> int:
         f"Targets checked       : {len(TARGETS)}"
     )
     print(
-        f"Pass examples checked : {total_pass_examples}"
+        f"Pass examples checked : "
+        f"{total_pass_examples}"
     )
     print(
-        f"Fail examples checked : {total_fail_examples}"
+        f"Fail examples checked : "
+        f"{total_fail_examples}"
     )
     print(
         f"Unexpected failures   : "
