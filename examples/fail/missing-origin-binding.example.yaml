@@ -1,0 +1,82 @@
+schema_version: "0.1.0"
+
+record_id: "mokr-20260720-fail-001"
+
+subject:
+  id: "unbound-reasoning"
+  label: "Unbound Derivative Reasoning"
+  description: >-
+    An invalid configuration that allows derivative conclusions
+    without binding them to retained origins.
+
+origin_kernel:
+  principles:
+    - id: "principle-minimal-retention"
+      statement: >-
+        Retain only knowledge required for stable reasoning.
+      authority: "normative"
+
+  definitions:
+    origin: >-
+      A minimal knowledge unit required to preserve meaning or causality.
+    derivative: >-
+      A contextual conclusion generated from origins and active context.
+    residue: >-
+      Redundant, obsolete, reproducible, or unnecessary knowledge.
+
+  constraints:
+    - "Derivative conclusions should remain traceable to retained origins."
+
+knowledge_partition:
+  retained:
+    - knowledge_id: "knowledge-origin-001"
+      classification: "origin"
+      summary: >-
+        Stable reasoning requires a minimal retained origin kernel.
+      reason: >-
+        This knowledge defines the intended reasoning architecture.
+      content_hash: "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+      source_locator: "origin://wind-intelligence/minimal-retention"
+
+  archived:
+    - knowledge_id: "knowledge-archive-001"
+      classification: "recallable"
+      summary: >-
+        Detailed examples that can be retrieved when required.
+      locator: "archive://wind-intelligence/examples"
+      reason: >-
+        These examples are not required in the active origin kernel.
+      content_hash: "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+
+  discarded:
+    - knowledge_hash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      classification: "residue"
+      reason: >-
+        Duplicate intermediate content that can be recomputed.
+      reversible: true
+      recovery_method: "recompute"
+      discarded_at: "2026-07-20T09:00:00+09:00"
+
+derivation_policy:
+  require_origin_binding: false
+  require_context_declaration: true
+  permit_external_retrieval: true
+  uncertainty_threshold: 0.35
+  allowed_insufficient_knowledge_actions:
+    - "retrieve"
+    - "defer"
+    - "ask"
+    - "abstain"
+
+audit_policy:
+  verify_origin_integrity: true
+  verify_derivation_trace: true
+  record_retrieval_sources: true
+  prohibit_unsupported_certainty: true
+
+trace:
+  created_at: "2026-07-20T09:00:00+09:00"
+  created_by: "wind-intelligence-agent"
+  parent_record_ids: []
+  notes: >-
+    This record is expected to fail because origin binding is disabled.
