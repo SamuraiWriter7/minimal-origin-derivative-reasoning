@@ -1,0 +1,173 @@
+schema_version: "0.5.0"
+
+audit_id: "kla-20260720-fail-002"
+
+subject:
+  knowledge_id: "knowledge-unclosed-temporary"
+  label: "Unclosed Temporary Rehydration"
+  description: >-
+    A lifecycle audit where temporary knowledge remains integrated after
+    its recorded expiry without rollback, promotion, or disposal.
+
+audit_window:
+  started_at: "2026-07-20T09:00:00+09:00"
+  ended_at: "2026-07-20T13:00:00+09:00"
+
+record_bindings:
+  - binding_id: "binding-v01-origin"
+    record_type: "minimal-origin-knowledge-record"
+    record_id: "mokr-20260720-001"
+    relationship: "origin-definition"
+    verified: true
+
+  - binding_id: "binding-v02-retention"
+    record_type: "knowledge-retention-decision"
+    record_id: "krd-20260720-001"
+    relationship: "retention-decision"
+    verified: true
+
+  - binding_id: "binding-v03-reasoning"
+    record_type: "derivative-reasoning-trace"
+    record_id: "drt-20260720-001"
+    relationship: "reasoning-use"
+    verified: true
+
+  - binding_id: "binding-v04-rehydration"
+    record_type: "knowledge-rehydration-record"
+    record_id: "krr-20260720-001"
+    relationship: "rehydration-operation"
+    verified: true
+
+lifecycle_events:
+  - event_id: "event-origin-declared"
+    sequence: 1
+    event_type: "origin-declared"
+    record_binding_id: "binding-v01-origin"
+    occurred_at: "2026-07-20T09:00:00+09:00"
+    state_before: "absent"
+    state_after: "active"
+    reversible: false
+    approval_ids: []
+    evidence_refs:
+      - "binding-v01-origin"
+
+  - event_id: "event-archived"
+    sequence: 2
+    event_type: "archived"
+    record_binding_id: "binding-v02-retention"
+    occurred_at: "2026-07-20T09:30:00+09:00"
+    state_before: "active"
+    state_after: "archived"
+    reversible: true
+    approval_ids: []
+    evidence_refs:
+      - "binding-v02-retention"
+
+  - event_id: "event-derivation-used"
+    sequence: 3
+    event_type: "derivation-used"
+    record_binding_id: "binding-v03-reasoning"
+    occurred_at: "2026-07-20T10:05:00+09:00"
+    state_before: "archived"
+    state_after: "archived"
+    reversible: true
+    approval_ids: []
+    evidence_refs:
+      - "binding-v03-reasoning"
+
+  - event_id: "event-rehydrated"
+    sequence: 4
+    event_type: "rehydrated"
+    record_binding_id: "binding-v04-rehydration"
+    occurred_at: "2026-07-20T10:34:00+09:00"
+    state_before: "archived"
+    state_after: "temporary"
+    reversible: true
+    expires_at: "2026-07-20T12:00:00+09:00"
+    approval_ids: []
+    evidence_refs:
+      - "binding-v04-rehydration"
+    notes: >-
+      Invalid: the temporary state remains open after expiry.
+
+control_results:
+  - control_id: "control-origin-lineage"
+    control_type: "origin-lineage"
+    status: "pass"
+    evidence_refs:
+      - "binding-v01-origin"
+    details: "Origin lineage is present."
+
+  - control_id: "control-retention-policy"
+    control_type: "retention-policy"
+    status: "pass"
+    evidence_refs:
+      - "binding-v02-retention"
+    details: "The archival decision is present."
+
+  - control_id: "control-derivation-trace"
+    control_type: "derivation-trace"
+    status: "pass"
+    evidence_refs:
+      - "binding-v03-reasoning"
+    details: "The reasoning trace is present."
+
+  - control_id: "control-rehydration-safety"
+    control_type: "rehydration-safety"
+    status: "pass"
+    evidence_refs:
+      - "binding-v04-rehydration"
+      - "event-rehydrated"
+    details: "Invalid: the control reports pass despite an expired open integration."
+
+  - control_id: "control-temporal-order"
+    control_type: "temporal-order"
+    status: "pass"
+    evidence_refs:
+      - "event-origin-declared"
+      - "event-rehydrated"
+    details: "The recorded events are chronologically ordered."
+
+  - control_id: "control-terminal-state"
+    control_type: "terminal-state"
+    status: "pass"
+    evidence_refs:
+      - "event-rehydrated"
+    details: "Invalid: temporary is reported as an acceptable terminal state."
+
+findings: []
+
+assessment:
+  overall_status: "compliant"
+  terminal_state: "temporary"
+  open_finding_ids: []
+  audit_confidence: 0.90
+  issued_at: "2026-07-20T13:00:00+09:00"
+  issued_by: "wind-lifecycle-audit-agent"
+  summary: >-
+    Invalid assessment: the temporary integration expired at noon but was not closed.
+
+policy_snapshot:
+  required_record_types:
+    - "minimal-origin-knowledge-record"
+    - "knowledge-retention-decision"
+    - "derivative-reasoning-trace"
+    - "knowledge-rehydration-record"
+  require_verified_record_bindings: true
+  require_contiguous_event_chain: true
+  require_acyclic_event_order: true
+  require_closed_expired_temporary_integrations: true
+  prohibit_unapproved_irreversible_discard: true
+  require_terminal_state_consistency: true
+  maximum_open_error_findings: 0
+
+trace:
+  created_at: "2026-07-20T13:00:00+09:00"
+  created_by: "wind-lifecycle-audit-agent"
+  parent_record_ids:
+    - "mokr-20260720-001"
+    - "krd-20260720-001"
+    - "drt-20260720-001"
+    - "krr-20260720-001"
+  notes: >-
+    Expected to fail because an expired temporary integration remains unclosed.
