@@ -1,0 +1,123 @@
+schema_version: "0.3.0"
+
+trace_id: "drt-20260720-fail-001"
+
+reasoning_subject:
+  id: "reasoning-orphan-claim"
+  label: "Orphan derived claim"
+  query: "Should implementation examples be archived?"
+  requested_at: "2026-07-20T10:10:00+09:00"
+
+declared_context:
+  context_id: "context-orphan-001"
+  summary: "A test trace containing a derived claim that is never used."
+  assumptions: []
+
+origin_bindings:
+  - binding_id: "origin-binding-001"
+    origin_record_id: "mokr-20260720-001"
+    knowledge_id: "knowledge-origin-001"
+    role: "principle"
+    summary: "Retain only knowledge required for stable reasoning."
+
+retrieval_inputs:
+  - retrieval_id: "retrieval-examples-001"
+    locator: "repository://minimal-origin-derivative-reasoning/examples"
+    source_type: "archive"
+    trust_level: "verified"
+    retrieved_at: "2026-07-20T10:11:00+09:00"
+    summary: "Implementation examples can be retrieved later."
+
+claims:
+  - claim_id: "claim-premise-origin"
+    kind: "premise"
+    statement: "The active kernel should remain minimal."
+    confidence: 0.95
+    certainty: "probable"
+    evidence_refs:
+      - "origin-binding-001"
+
+  - claim_id: "claim-premise-retrieval"
+    kind: "premise"
+    statement: "The examples are recoverable."
+    confidence: 0.92
+    certainty: "probable"
+    evidence_refs:
+      - "retrieval-examples-001"
+
+  - claim_id: "claim-intermediate-valid"
+    kind: "intermediate"
+    statement: "Archival preserves recoverability while reducing retention."
+    confidence: 0.90
+    certainty: "probable"
+    evidence_refs: []
+
+  - claim_id: "claim-intermediate-orphan"
+    kind: "intermediate"
+    statement: "This derived claim is produced but never consumed or finalized."
+    confidence: 0.70
+    certainty: "possible"
+    evidence_refs: []
+
+  - claim_id: "claim-conclusion-archive"
+    kind: "conclusion"
+    statement: "The examples should be archived."
+    confidence: 0.90
+    certainty: "probable"
+    evidence_refs: []
+
+derivation_steps:
+  - step_id: "step-valid-intermediate"
+    sequence: 1
+    operation: "aggregation"
+    input_refs:
+      - "claim-premise-origin"
+      - "claim-premise-retrieval"
+    output_claim_id: "claim-intermediate-valid"
+    rationale: "Minimal retention and recoverability support archival."
+    confidence: 0.90
+    executed_by: "wind-reasoning-agent"
+    executed_at: "2026-07-20T10:12:00+09:00"
+
+  - step_id: "step-orphan"
+    sequence: 2
+    operation: "transformation"
+    input_refs:
+      - "claim-premise-retrieval"
+    output_claim_id: "claim-intermediate-orphan"
+    rationale: "Produces an unused branch for negative testing."
+    confidence: 0.70
+    executed_by: "wind-reasoning-agent"
+    executed_at: "2026-07-20T10:13:00+09:00"
+
+  - step_id: "step-conclusion"
+    sequence: 3
+    operation: "deduction"
+    input_refs:
+      - "claim-intermediate-valid"
+    output_claim_id: "claim-conclusion-archive"
+    rationale: "The valid branch supports archival."
+    confidence: 0.90
+    executed_by: "wind-reasoning-agent"
+    executed_at: "2026-07-20T10:14:00+09:00"
+
+final_output:
+  conclusion_claim_ids:
+    - "claim-conclusion-archive"
+  response_summary: "Archive the examples."
+  overall_confidence: 0.90
+  insufficient_knowledge_action: "none"
+
+audit_policy:
+  require_origin_reachability: true
+  require_acyclic_trace: true
+  prohibit_orphan_claims: true
+  require_declared_assumptions: true
+  minimum_final_confidence: 0.70
+
+trace:
+  created_at: "2026-07-20T10:15:00+09:00"
+  created_by: "wind-reasoning-agent"
+  parent_record_ids:
+    - "mokr-20260720-001"
+  notes: "Expected to fail because claim-intermediate-orphan is unused."
