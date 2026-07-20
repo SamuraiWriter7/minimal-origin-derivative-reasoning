@@ -1,0 +1,109 @@
+schema_version: "0.3.0"
+
+trace_id: "drt-20260720-fail-002"
+
+reasoning_subject:
+  id: "reasoning-cycle"
+  label: "Cyclic derivation trace"
+  query: "Can two derived claims justify each other?"
+  requested_at: "2026-07-20T10:20:00+09:00"
+
+declared_context:
+  context_id: "context-cycle-001"
+  summary: "A negative test containing a circular derivation path."
+  assumptions: []
+
+origin_bindings:
+  - binding_id: "origin-binding-001"
+    origin_record_id: "mokr-20260720-001"
+    knowledge_id: "knowledge-origin-001"
+    role: "constraint"
+    summary: "Derivative reasoning must remain traceable and auditable."
+
+retrieval_inputs: []
+
+claims:
+  - claim_id: "claim-premise-origin"
+    kind: "premise"
+    statement: "Reasoning must remain auditable."
+    confidence: 0.96
+    certainty: "probable"
+    evidence_refs:
+      - "origin-binding-001"
+
+  - claim_id: "claim-intermediate-a"
+    kind: "intermediate"
+    statement: "Intermediate claim A depends on claim B."
+    confidence: 0.60
+    certainty: "possible"
+    evidence_refs: []
+
+  - claim_id: "claim-intermediate-b"
+    kind: "intermediate"
+    statement: "Intermediate claim B depends on claim A."
+    confidence: 0.60
+    certainty: "possible"
+    evidence_refs: []
+
+  - claim_id: "claim-conclusion-cycle"
+    kind: "conclusion"
+    statement: "The circular branch is accepted as a conclusion."
+    confidence: 0.60
+    certainty: "possible"
+    evidence_refs: []
+
+derivation_steps:
+  - step_id: "step-produce-a"
+    sequence: 1
+    operation: "deduction"
+    input_refs:
+      - "claim-premise-origin"
+      - "claim-intermediate-b"
+    output_claim_id: "claim-intermediate-a"
+    rationale: "Claim A is derived partly from claim B."
+    confidence: 0.60
+    executed_by: "wind-reasoning-agent"
+    executed_at: "2026-07-20T10:21:00+09:00"
+
+  - step_id: "step-produce-b"
+    sequence: 2
+    operation: "deduction"
+    input_refs:
+      - "claim-intermediate-a"
+    output_claim_id: "claim-intermediate-b"
+    rationale: "Claim B is derived from claim A, creating a cycle."
+    confidence: 0.60
+    executed_by: "wind-reasoning-agent"
+    executed_at: "2026-07-20T10:22:00+09:00"
+
+  - step_id: "step-conclusion"
+    sequence: 3
+    operation: "deduction"
+    input_refs:
+      - "claim-intermediate-a"
+    output_claim_id: "claim-conclusion-cycle"
+    rationale: "The conclusion depends on the cyclic branch."
+    confidence: 0.60
+    executed_by: "wind-reasoning-agent"
+    executed_at: "2026-07-20T10:23:00+09:00"
+
+final_output:
+  conclusion_claim_ids:
+    - "claim-conclusion-cycle"
+  response_summary: "Accept the circular reasoning branch."
+  overall_confidence: 0.60
+  insufficient_knowledge_action: "retrieve"
+
+audit_policy:
+  require_origin_reachability: true
+  require_acyclic_trace: true
+  prohibit_orphan_claims: true
+  require_declared_assumptions: true
+  minimum_final_confidence: 0.70
+
+trace:
+  created_at: "2026-07-20T10:24:00+09:00"
+  created_by: "wind-reasoning-agent"
+  parent_record_ids:
+    - "mokr-20260720-001"
+  notes: "Expected to fail because claim A and claim B form a cycle."
